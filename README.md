@@ -90,6 +90,33 @@ reverse-engineered — but the car **refuses remote parking for a software key**
 requires a DK 3.0 / Secure-Element key), so it doesn't actuate. See `CMAC_FINDINGS.md`
 (local) for the RPA crypto derivation and schema.
 
+## Automations (this fork)
+
+Phone-side automations built on the same cloud commands as the buttons. Open **Security › Automations**.
+Everything is off until you switch it on, and every action is written to the screen's activity log.
+
+| Feature | What it does |
+| --- | --- |
+| **Auto sentry** | Car parked for *N* min **away from your safe places** → sentry on (optionally locks first). Never arms at a safe place; turns sentry off there if this app armed it. Uses the car's GPS, so it works whoever drives. |
+| **Safe places** | Add the car's current spot (or paste coordinates / a Google Maps link) with a 100–500 m radius. |
+| **Auto cool** | Parked and cabin ≥ trigger °C → A/C on at your set temperature for *X* min, wait a gap, repeat while hot. Battery floor, max runs per stop, active hours, "also in safe places". Stops a run that drains the battery to the floor. |
+| **Auto-lock** | Locks over the cloud if the car is left unlocked while parked for *N* min. If a door is open it notifies you instead. Works without the Bluetooth key. |
+| **Left-open alert** | Notifies when doors, trunk, hood, windows or sunroof stay open while parked. |
+| **Auto-close windows** | Closes windows / sunroof left open while parked — always, or only when rain is forecast at the car (Open-Meteo, coordinates rounded to ~1 km). |
+
+**How it runs.** A WorkManager job reads the car's status, decides, and sends commands: every 3 min
+while the car is on, at your chosen interval (10/15/30 min) while parked, and sooner when a timer is
+due. Android can delay background work in deep sleep, so allow the app to run unrestricted (the
+screen offers a button). Each check wakes the car's telematics briefly; each cooling run uses battery.
+
+**Code.** The rules are a pure function in `core/.../auto/AutomationEngine.kt` with JVM unit tests in
+`core/src/test/.../auto/AutomationEngineTest.kt`. The worker, storage, rain check and notifications
+sit beside it in the same package; the screen is `app/.../ui/AutomationsScreen.kt`.
+
+**Building without Android Studio.** Push the repo to a private GitHub repository: the
+`Build APK` workflow runs the tests and attaches the APK to the run. Add the signing secrets listed
+at the top of `.github/workflows/build-apk.yml` so new builds install as updates.
+
 ## How OpenZeekr differs from the official app
 
 OpenZeekr isn't just a re-skin — a few things work here that the stock Zeekr app

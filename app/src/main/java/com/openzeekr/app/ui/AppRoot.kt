@@ -221,6 +221,9 @@ fun AppRoot(deps: Deps) {
     }
     // If the current tab stops being visible (e.g. Updates while on a shared account), fall back.
     LaunchedEffect(tabs) { if (selectedTab !in tabs) selectedTab = Tab.VEHICLE }
+    // Tapped an automation notification: jump to Security, which then opens the Automations screen.
+    val openAutomations by com.openzeekr.app.auto.AutomationNav.openRequested.collectAsState()
+    LaunchedEffect(openAutomations, loggedIn) { if (openAutomations && loggedIn) selectedTab = Tab.SECURITY }
 
     Scaffold(
         topBar = {

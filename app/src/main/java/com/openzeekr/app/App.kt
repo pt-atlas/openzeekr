@@ -20,6 +20,9 @@ class App : Application(), DepsHolder {
     override fun onCreate() {
         super.onCreate()
         deps = Deps(this)
+        // Resume (or stop) the background automation checks to match their saved settings.
+        runCatching { com.openzeekr.app.auto.AutomationScheduler.sync(this) }
+            .onFailure { Logx.w("auto", "couldn't start automations: ${it.message}") }
         registerActivityLifecycleCallbacks(ForegroundTracker())
     }
 

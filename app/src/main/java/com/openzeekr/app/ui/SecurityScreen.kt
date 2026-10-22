@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoMode
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
@@ -71,6 +72,14 @@ fun SecurityScreen(deps: Deps, snackbar: (String) -> Unit, modifier: Modifier = 
     var pinFor by remember { mutableStateOf<Command?>(null) }
     // Journey log takes over the whole screen (like the inbox) when opened.
     var showJourney by remember { mutableStateOf(false) }
+    // Automations (auto-sentry / auto-cool / lock guard) also open full-screen.
+    var showAutomations by remember { mutableStateOf(false) }
+    val autoCtx = androidx.compose.ui.platform.LocalContext.current
+    val autoCfg by remember { com.openzeekr.app.auto.AutomationStore.get(autoCtx) }.config.collectAsState()
+    val openAutomations by com.openzeekr.app.auto.AutomationNav.openRequested.collectAsState()
+    LaunchedEffect(openAutomations) {
+        if (openAutomations) { showAutomations = true; com.openzeekr.app.auto.AutomationNav.openRequested.value = false }
+    }
 
     // Seed the real on/off state from getVehicleState (captured 2026-09-16): sentry/guard =
     // `vstdModeState` ("1"=armed), visitor = `visitorModeState`. So the toggles reflect the car,
@@ -88,6 +97,10 @@ fun SecurityScreen(deps: Deps, snackbar: (String) -> Unit, modifier: Modifier = 
 
     if (showJourney) {
         JourneyScreen(deps, onBack = { showJourney = false }, snackbar = snackbar, modifier = modifier)
+        return
+    }
+    if (showAutomations) {
+        AutomationsScreen(deps, onBack = { showAutomations = false }, snackbar = snackbar, modifier = modifier)
         return
     }
 
@@ -110,6 +123,14 @@ fun SecurityScreen(deps: Deps, snackbar: (String) -> Unit, modifier: Modifier = 
                     fire(if (on) "Sentry on" else "Sentry off", if (on) Command.SENTINEL_ON else Command.SENTINEL_OFF)
                 }, colors = brandSwitchColors(Brand.good))
             }
+            val autoOn = listOfNotNull(
+                "Auto sentry".takeIf { autoCfg.sentry.enabled },
+                "Auto cool".takeIf { autoCfg.cool.enabled },
+                "Lock guard".takeIf { autoCfg.lock.autoLockEnabled || autoCfg.lock.openAlertEnabled || autoCfg.lock.autoCloseWindows },
+            )
+            SecRow(Icons.Filled.AutoMode, "Automations",
+                if (autoOn.isEmpty()) "Auto sentry by location · auto cool · lock guard" else "On: ${autoOn.joinToString(" · ")}",
+                onClick = { showAutomations = true }) { Chevron() }
             // Owner-only (shared accounts are refused server-side). Both need the user's PIN.
             if (owner) {
                 SecRow(Icons.Filled.Inventory2, "Glovebox lock",

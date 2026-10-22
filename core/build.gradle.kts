@@ -134,6 +134,9 @@ dependencies {
     // Activity Recognition (proximity motion fallback when there's no hardware motion sensor)
     api("com.google.android.gms:play-services-location:21.3.0")
 
+    // Background checks for the automations (auto-sentry / auto-cool / lock guard).
+    api("androidx.work:work-runtime-ktx:2.9.1")
+
     // FCM push (car message-centre alarms while the screen is off). NO google-services plugin /
     // google-services.json — the default FirebaseApp auto-inits from the stock project's string
     // resources (core/src/main/res/values/secrets_firebase.xml) via FirebaseInitProvider, which

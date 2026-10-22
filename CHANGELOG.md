@@ -3,6 +3,27 @@
 All notable changes to OpenZeekr are recorded here. OpenZeekr is a free, non-commercial
 clean-room app and is not affiliated with Zeekr.
 
+## [0.2.1-auto.1] - 2026-10-22
+
+Fork release adding phone-side automations. Every existing OpenZeekr feature is unchanged.
+
+### Added
+- **Automations screen** (Security tab > Automations), with an activity log and a "Run a check now" button.
+- **Auto sentry by location.** Turns sentry on when the car has been parked for a set time away
+  from your safe places (home, office...), optionally locking the doors first. Never arms in a safe
+  place, and turns sentry back off there if this app armed it. Uses the car's own GPS position, so it
+  works whoever is driving. Safe places are added from the car's current spot or pasted coordinates.
+- **Auto cool.** When parked and the cabin reaches your trigger temperature, starts the A/C for
+  your chosen run time, then waits a gap and repeats while it stays hot. Battery floor, max runs per
+  stop, active hours and "also in safe places" options. Stops a run if the battery hits the floor.
+- **Lock guard.** Cloud auto-lock if the car is left unlocked while parked (works without the
+  Bluetooth key), alerts for doors / trunk / hood / windows / sunroof left open, and optional
+  auto-close of windows and sunroof (always, or only when rain is forecast at the car via Open-Meteo).
+- Background checks via WorkManager: every 3 min while driving, your chosen interval while parked,
+  sooner when a timer is due; a watchdog restarts them if Android drops them. Optional background
+  re-sign-in when the session expires.
+- GitHub Actions workflow that runs the unit tests and builds the APK.
+
 ## [0.2.1] - 2026-10-09
 
 ### Fixed
