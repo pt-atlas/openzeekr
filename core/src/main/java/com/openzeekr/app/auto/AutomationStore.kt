@@ -21,10 +21,10 @@ class AutomationStore private constructor(private val prefs: SharedPreferences) 
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    private val _config = MutableStateFlow(read(KEY_CONFIG) { json.decodeFromString<AutomationConfig>(it) } ?: AutomationConfig())
+    private val _config = MutableStateFlow(read(KEY_CONFIG) { json.decodeFromString(AutomationConfig.serializer(), it) } ?: AutomationConfig())
     val config: StateFlow<AutomationConfig> = _config.asStateFlow()
 
-    private val _state = MutableStateFlow(read(KEY_STATE) { json.decodeFromString<AutomationState>(it) } ?: AutomationState())
+    private val _state = MutableStateFlow(read(KEY_STATE) { json.decodeFromString(AutomationState.serializer(), it) } ?: AutomationState())
     val state: StateFlow<AutomationState> = _state.asStateFlow()
 
     private fun <T> read(key: String, decode: (String) -> T): T? =
@@ -38,14 +38,14 @@ class AutomationStore private constructor(private val prefs: SharedPreferences) 
     fun updateConfig(transform: (AutomationConfig) -> AutomationConfig) {
         val next = transform(_config.value)
         _config.value = next
-        prefs.edit().putString(KEY_CONFIG, json.encodeToString(next)).apply()
+        prefs.edit().putString(KEY_CONFIG, json.encodeToString(AutomationConfig.serializer(), next)).apply()
     }
 
     @Synchronized
     fun updateState(transform: (AutomationState) -> AutomationState) {
         val next = transform(_state.value)
         _state.value = next
-        prefs.edit().putString(KEY_STATE, json.encodeToString(next)).apply()
+        prefs.edit().putString(KEY_STATE, json.encodeToString(AutomationState.serializer(), next)).apply()
     }
 
     fun log(text: String) = updateState { it.withLog(System.currentTimeMillis(), text) }
