@@ -41,9 +41,6 @@ jobs:
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
 
-      - name: Unit tests (automation engine and existing core tests)
-        run: ./gradlew --no-daemon :core:testDebugUnitTest
-
       - name: Set up release signing
         id: signing
         env:
@@ -66,13 +63,38 @@ jobs:
             echo "signed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build signed release APK
-        if: steps.signing.outputs.signed == 'true'
-        run: ./gradlew --no-daemon :app:assembleRelease
+      # Tests + APK in one Gradle run (--continue shows every error in one pass). Output is kept in
+      # build.log so the next step can surface the errors as annotations.
+      - name: Test and build APK
+        run: |
+          if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then TASK=":app:assembleRelease"; else TASK=":app:assembleDebug"; fi
+          set +e
+          ./gradlew --no-daemon --continue :core:testDebugUnitTest "$TASK" 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
 
-      - name: Build debug APK
-        if: steps.signing.outputs.signed != 'true'
-        run: ./gradlew --no-daemon :app:assembleDebug
+      - name: Report build errors
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import re
+          try:
+              lines = open("build.log", errors="replace").read().splitlines()
+          except FileNotFoundError:
+              raise SystemExit(0)
+          keep = []
+          for i, l in enumerate(lines):
+              if re.match(r"^e: ", l) or "FAILED" in l or re.search(r"\b(Exception|AssertionError|expected:)", l) \
+                      or l.startswith("* What went wrong") or re.match(r"^\S+Test > ", l):
+                  keep.extend(lines[i:i + (6 if l.startswith("* What went wrong") else 2)])
+          seen, out = set(), []
+          for l in keep:
+              if l not in seen:
+                  seen.add(l); out.append(l)
+          msg = "\n".join(out)[:12000] or "\n".join(lines[-60:])
+          for n, chunk in enumerate([msg[i:i + 3500] for i in range(0, len(msg), 3500)][:8]):
+              body = chunk.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+              print(f"::error title=Build errors part {n + 1}::{body}")
+          PY
 
       - uses: actions/upload-artifact@v4
         with:
